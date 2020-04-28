@@ -1,0 +1,33 @@
+重现论文
+Cold Filter: A Meta-Framework for Faster and More Accurate Stream Processing
+
+## 算法简介
+count min 算法(简称CM)
+用于流式数据中近似计算每个item的频数.
+采用类似布隆过滤器的思路, 以减少空间开销.
+采用d个哈希函数对应d个哈希表, 每个哈希表有w个计数器.
+更新一个key, 计算出d个哈希值, 设第i个哈希值为hash_i(key), 则第i个哈希表的第hash_i(key)计数器的增加计数.
+CM算法在增加计数的时候, 是全部的d个计数器都会增加1.
+查询一个key, 则返回该key对应的d个计数值中最小的那个作为频数的估计值.
+
+
+count min with conservative update算法(简称CMCU)
+由于哈希碰撞的原因, CM算法只可能会高估item的频率, 既然每次都只需要最小的计数值, 
+那么在增加计数的时候, 也只需要增加d个计数里最小的那个即可. 因为其他更大的计数值必然是因为碰撞导致的.
+d个计数中最小的那个, 可以认为是碰撞次数最少的, 最接近真实频数的.
+这样可以减少高估的程度.
+
+cold filter
+对于分布非常不均匀的数据流(即少量的item有较大的频数, 但是大量的item出现的次数非常小)
+CM算法和CMCU算法的内存使用效率低, 因为计数器的大小必须要能容纳最大的频数(通常32位)
+但是大部分的item实际频数只有几十~几千, 因此对于这些item使用32位计数器过于浪费.
+这些item称为cold, 大量的cold item和hot item混在一起, 会增加碰撞的可能, 进一步增加hotitem的高估程度.
+而且冷item不应该直接传给CMCU算法, 
+作者提出了一个两层过滤器, 来把低频的item留在 cold filter内. 只把hot的item传给cmcu处理..
+
+
+# 代码组织
+main目录内是CMCU 和 CMCU_CF 的实现和实验对比.
+data目录内webdocs.dat 是论文使用的数据集(http://fimi.ua.ac.be/data/), 体积过大因此没有上传. 
+webdocs_dat_generator内的代码是从data/webdocs.dat 中抽取出不同大小的测试集存到data目录内.
+抽取的数据集大小从1万item到 3000万item不等.
